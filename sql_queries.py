@@ -114,3 +114,63 @@ copy staging_songs from {}
 credentials 'aws_iam_role={}' 
 json 'auto';
 """).format(config['S3']['SONG_DATA'], config['IAM_ROLE']['ARN'])
+
+
+# FINAL TABLES
+
+songplay_table_insert = ("""
+INSERT INTO songplays 
+SELECT ts,
+       se.userId,
+       se.level,
+       ss.song_id,
+       ss.artist_id,
+       se.sessionId,
+       se.location,
+       se.userAgent
+FROM staging_events se, staging_songs ss
+WHERE se.page = 'NextSong'
+AND se.song = ss.title
+AND se.artist = ss.artist_name
+AND se.length = ss.duration;
+""")
+
+user_table_insert = ("""
+INSERT INTO users 
+SELECT userid, 
+       firstName, 
+       lastName, 
+       gender, 
+       level
+FROM staging_events
+WHERE page = 'NextSong';
+""")
+
+song_table_insert = ("""
+INSERT INTO songs
+SELECT song_id, 
+       title, 
+       artist_id, 
+       year,        
+       duration
+FROM staging_songs;
+""")
+
+artist_table_insert = ("""
+INSERT INTO artists
+SELECT artist_id, 
+       artist_name, 
+       artist_location, 
+       artist_latitude, 
+       artist_longitude
+FROM staging_songs;
+""")
+
+time_table_insert = ("""
+INSERT INTO time 
+SELECT a.start_time,
+EXTRACT (HOUR FROM a.start_time), EXTRACT (DAY FROM a.start_time),
+EXTRACT (WEEK FROM a.start_time), EXTRACT (MONTH FROM a.start_time),
+EXTRACT (YEAR FROM a.start_time), EXTRACT (WEEKDAY FROM a.start_time) FROM
+(SELECT TIMESTAMP 'epoch' + start_time/1000 *INTERVAL '1 second' as start_time FROM songplays) a;
+""")
