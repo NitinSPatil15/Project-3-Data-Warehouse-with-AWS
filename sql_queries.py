@@ -99,3 +99,18 @@ month int,
 year int, 
 weekday int);
 """)
+
+
+# STAGING TABLES
+
+staging_events_copy = ("""
+copy staging_events from {}
+credentials 'aws_iam_role={}' 
+format as json {};
+""").format(config['S3']['LOG_DATA'], config['IAM_ROLE']['ARN'], config['S3']['LOG_JSONPATH'])
+
+staging_songs_copy = ("""
+copy staging_songs from {}
+credentials 'aws_iam_role={}' 
+json 'auto';
+""").format(config['S3']['SONG_DATA'], config['IAM_ROLE']['ARN'])
